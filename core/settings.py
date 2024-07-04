@@ -12,6 +12,11 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from decouple import config
+from datetime import timedelta
+import os
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,6 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third Party
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 
     # Local
     'authentication',
@@ -89,6 +99,7 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = 'authentication.User'
+PASSWORD_RESET_TIMEOUT = 86400
 
 
 # Password validation
@@ -131,3 +142,78 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Frontend Settings
+FRONTEND_HOST = config('FRONTEND_HOST')
+FRONTEND_PROTOCOL = config('FRONTEND_PROTOCOL')
+
+
+# JWT Authentication as the default authentication backend
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        'rest_framework.authentication.SessionAuthentication',
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+}
+
+
+# Tokens validity duration
+ACCESS_TOKEN_VALID_DURATION = int(config("ACCESS_TOKEN_VALID_DURATION"))
+REFRESH_TOKEN_VALID_DURATION = int(config("REFRESH_TOKEN_VALID_DURATION"))
+
+# Whether to allow refresh token to unverified users or not
+ALLOW_NEW_REFRESH_TOKENS_FOR_UNVERIFIED_USERS = config('ALLOW_NEW_REFRESH_TOKENS_FOR_UNVERIFIED_USERS', cast=bool)
+LOGOUT_AFTER_PASSWORD_CHANGE = config('LOGOUT_AFTER_PASSWORD_CHANGE', cast=bool)
+
+AUTHORIZATION_DIR = os.path.join(Path(BASE_DIR), "authorization")
+JWT_PRIVATE_KEY_PATH = os.path.join(AUTHORIZATION_DIR, "jwt_key")
+JWT_PUBLIC_KEY_PATH = os.path.join(AUTHORIZATION_DIR, "jwt_key.pub")
+
+# If the above directory does not exist when we run the sever
+if (not os.path.exists(JWT_PRIVATE_KEY_PATH)) or (not os.path.exists(JWT_PUBLIC_KEY_PATH)):
+    if not os.path.exists(AUTHORIZATION_DIR):
+        os.makedirs(AUTHORIZATION_DIR)
+    private_key = rsa.generate_private_key(
+        public_exponent=65537, key_size=4096, backend=default_backend()
+    )
+    pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    with open(JWT_PRIVATE_KEY_PATH, "w") as pk:
+        pk.write(pem.decode())
+
+    public_key = private_key.public_key()
+    pem_public = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    with open(JWT_PUBLIC_KEY_PATH, "w") as pk:
+        pk.write(pem_public.decode())
+    print("PRIVATE/PUBLIC keys generated!")
+
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        days=ACCESS_TOKEN_VALID_DURATION,
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        weeks=REFRESH_TOKEN_VALID_DURATION
+    ),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "RS256",
+    "SIGNING_KEY": open(JWT_PRIVATE_KEY_PATH).read(),
+    "VERIFYING_KEY": open(JWT_PUBLIC_KEY_PATH).read(),
+    "AUDIENCE": None,
+    "ISSUER": None,  # In case of multiple auth service
+    "USER_ID_CLAIM": "user_id",
+    "USER_ID_FIELD": "id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "JTI_CLAIM": "jti",  # Token unique identifier
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
