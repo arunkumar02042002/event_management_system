@@ -208,3 +208,7 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 
         except Exception:
             raise
+
+class ActivateAccountSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField(max_length=10)
+    token = serializers.CharField(max_length=255)

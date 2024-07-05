@@ -194,13 +194,15 @@ class RegisterOrganizerView(GenericAPIView):
 
 
 class ActivateAccountView(GenericAPIView):
+    serializer_class = auth_serializers.ActivateAccountSerializer
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
+        requested_data = request.data
+        uidb64 = requested_data.get('uidb64', '')
+        token = requested_data.get('token', '')
+        uid = force_str(urlsafe_base64_decode(uidb64))
 
         try:
-            uidb64 = kwargs['uidb64']
-            token = kwargs['token']
-            uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(id=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             user = None

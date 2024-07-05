@@ -19,6 +19,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.tokens import account_activation_token
 from authentication.choices import UserTypeChoices
 
+import json
+
 
 User = get_user_model()
 
@@ -84,6 +86,7 @@ class RegisterUserViewTest(TestCase):
         response = self.client.post(self.signup_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+
 class RegisterOrganizerViewTest(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -147,31 +150,65 @@ class RegisterOrganizerViewTest(TestCase):
 
 
 class ActivateAccountViewTest(TestCase):
+
     def setUp(self):
         self.client = APIClient()
+        self.activate_url = reverse('activate-account')
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='test_password', is_active=False
+        )
 
-    def test_activation_success(self):
-        """
-        Test activation with valid token and UID.
-        """
-        user = User.objects.create_user(email='test@example.com', username='test_user', password='test_password', is_active=False)
-        uidb64 = urlsafe_base64_encode(force_bytes(user.id))
-        token = account_activation_token.make_token(user)
-        
-        response = self.client.get(reverse('activate-account', kwargs={'uidb64': uidb64, 'token': token}))
-        
+    def test_activate_account_success(self):
+        uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = account_activation_token.make_token(self.user)
+        data = {'uidb64': uidb64, 'token': token}
+        response = self.client.post(self.activate_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(User.objects.get(id=user.id).is_active)
+        self.assertEqual(response.data['status'], 'success')
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_active)
 
-    def test_activation_invalid_link(self):
-        """
-        Test activation with invalid token or UID.
-        """
-        # Make a GET request to the activation URL with invalid token and UID
-        response = self.client.get(reverse('activate-account', kwargs={'uidb64': 'inavlid_uidb64', 'token': 'invalid_token'}))
-
-        # Check if the response indicates an error due to invalid activation link
+    def test_activate_account_invalid_uidb64(self):
+        uidb64 = urlsafe_base64_encode(force_bytes(99999))  # Non-existent user id
+        token = account_activation_token.make_token(self.user)
+        data = {'uidb64': uidb64, 'token': token}
+        response = self.client.post(self.activate_url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Activation link is invalid')
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
+    def test_activate_account_invalid_token(self):
+        uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = 'invalid-token'
+        data = {'uidb64': uidb64, 'token': token}
+        response = self.client.post(self.activate_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Activation link is invalid')
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
+    def test_activate_account_missing_uidb64(self):
+        token = account_activation_token.make_token(self.user)
+        data = {'token': token}
+        response = self.client.post(self.activate_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Activation link is invalid')
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
+
+    def test_activate_account_missing_token(self):
+        uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))
+        data = {'uidb64': uidb64}
+        response = self.client.post(self.activate_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Activation link is invalid')
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_active)
 
 
 class LoginViewTest(TestCase):
