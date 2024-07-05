@@ -8,6 +8,7 @@ django = "*"
 python-decouple = "*"
 six = "*"
 cryptography = "*"
+drf-yasg = "*"
 
 [dev-packages]
 
