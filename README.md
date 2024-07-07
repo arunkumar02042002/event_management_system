@@ -149,5 +149,5 @@ Notifications are sent via email using Celery and Redis for task management. Ens
 
 ## Contact
 
-For any query drop: <a href="mailto:arun.kumar.2403gg@gmail.com">Send Email</a>
+For any query: arun.kumar.2403gg@gmail.com
 
