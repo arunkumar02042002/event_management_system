@@ -8,4 +8,5 @@ urlpatterns = [
     path('<slug:slug>/buy-ticket', view=event_views.BuyEventTicketView.as_view(), name='buy-event-ticket'),
     path('<slug:slug>/feedbacks/', view=event_views.EventFeedbackListCreateView.as_view(), name="feedback-list-create"),
     path('my-tickets/', view=event_views.MyTicketView.as_view(), name='my-tickets'),
+    path('organizer/<username>/events/', view=event_views.OraganizerEventList.as_view(), name='organizer-events')
 ]
