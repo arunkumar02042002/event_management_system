@@ -1,0 +1,12 @@
+{% autoescape off %}
+Hi {{ user.username }},
+Thanks for signing up to Eventizer!
+
+To set up your account, Please click on the link to confirm your registration,
+http://{{ host }}:{{ protocol }}/{{ uidb64 }}/{{ token }}/
+
+Thanks for using our site!
+
+Sincerely,
+Team Eventizer
+{% endautoescape %}

@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'django_celery_results',
+    'django_filters',
     'drf_yasg',
 
     # Local
@@ -71,7 +73,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -149,6 +151,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Frontend Settings
 FRONTEND_HOST = config('FRONTEND_HOST')
 FRONTEND_PROTOCOL = config('FRONTEND_PROTOCOL')
+
+#SMTP Settings
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_USE_TLS = True
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
 
 # JWT Authentication as the default authentication backend
@@ -241,3 +251,8 @@ SWAGGER_SETTINGS = {
     },
     "JSON_EDITOR": True
 }
+
+# Celery
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = 'django-db'

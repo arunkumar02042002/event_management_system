@@ -10,6 +10,11 @@ six = "*"
 cryptography = "*"
 drf-yasg = "*"
 ipython = "*"
+celery = "*"
+redis = "*"
+install = "*"
+django-celery-results = "*"
+django-filter = "*"
 
 [dev-packages]
 

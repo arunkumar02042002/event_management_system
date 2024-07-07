@@ -1,8 +1,9 @@
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
-
+from django.conf import settings
 from django.db import transaction
+from django.template.loader import render_to_string
 
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, ListAPIView, CreateAPIView
@@ -14,6 +15,8 @@ from .permission import IsOrganizerOrReadOnly, IsParticipantorEventOrganizer
 from .models import Event, Ticket, EventFeedback
 from . import serializers as event_serialziers
 from . import throttles as event_throttles
+
+from notifications.tasks import send_email
 
 
 # Create your views here.
@@ -132,12 +135,23 @@ class BuyEventTicketView(GenericAPIView):
                 event.save()
 
         if created:
+            # Email
+            subject = "Ticket Confirmation"
+            template = "events/confirm_ticket.html"
+            context_data = {
+                'event':event,
+                'user':user
+            }
+            message = render_to_string(template_name=template, context=context_data)
+
+            send_email.delay(message=message, subject=subject, to_email=user.email)
+
             serializer = self.serializer_class(instance=ticket)
             return Response({
                 "status":"success",
                 "message":"Your ticket for that event has been booked.",
                 "payload":serializer.data
-            }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_200_OK)
         
         return Response({
             "status":"error",
@@ -236,3 +250,4 @@ class EventFeedbackListCreateView(GenericAPIView):
                 "feedback":serializer.data
             }
         }, status=status.HTTP_201_CREATED)
+

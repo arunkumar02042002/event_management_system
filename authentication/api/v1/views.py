@@ -5,6 +5,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
 
 # Rest Framework Imports
 from rest_framework.generics import GenericAPIView
@@ -23,6 +24,8 @@ from authentication.helpers import AuthHelper, validation_error_handler
 from authentication.tokens import account_activation_token, password_reset_token
 from authentication.choices import UserTypeChoices
 
+from notifications.tasks import send_email
+from django.core.mail import send_mail
 
 User = get_user_model()
 
@@ -76,19 +79,20 @@ class RegisterUserView(GenericAPIView):
         serializer_data = self.serializer_class(user).data
 
         # Email
-        # subject = "Verify Email for your account on My App"
-        # template = "auth/email/verify_email.html"
-        # context_data = {
-        #     "host": settings.FRONTEND_HOST,
-        #     "uid": urlsafe_base64_encode(force_bytes(user.id)),
-        #     "token": account_activation_token.make_token(user=user),
-        #     "protocol": settings.FRONTEND_PROTOCOL
-        # }
+        subject = "Verify Email for your account on Eventizer"
+        template = "authentication/acc_activate_mail.html"
+        context_data = {
+            "host": settings.FRONTEND_HOST,
+            "uidb64": urlsafe_base64_encode(force_bytes(user.id)),
+            "token": account_activation_token.make_token(user=user),
+            "protocol": settings.FRONTEND_PROTOCOL
+        }
+        message = render_to_string(template_name=template, context=context_data)
 
-        print(
-            f"uid: {urlsafe_base64_encode(force_bytes(user.id))}, token: {account_activation_token.make_token(user=user)}")
+        # print(
+        #     f"uid: {urlsafe_base64_encode(force_bytes(user.id))}, token: {account_activation_token.make_token(user=user)}")
         try:
-            # Send Verification Email here
+            send_email.delay(subject=subject, message=message, to_email=user.email)
 
             return Response({
                 "status": "success",
@@ -159,19 +163,21 @@ class RegisterOrganizerView(GenericAPIView):
         serializer_data = self.serializer_class(user).data
 
         # Email
-        # subject = "Verify Email for your account on My App"
-        # template = "auth/email/verify_email.html"
-        # context_data = {
-        #     "host": settings.FRONTEND_HOST,
-        #     "uid": urlsafe_base64_encode(force_bytes(user.id)),
-        #     "token": account_activation_token.make_token(user=user),
-        #     "protocol": settings.FRONTEND_PROTOCOL
-        # }
+        subject = "Verify Email for your account on Eventizer"
+        template = "authentication/acc_activate_mail.html"
+        context_data = {
+            "host": settings.FRONTEND_HOST,
+            "uid": urlsafe_base64_encode(force_bytes(user.id)),
+            "token": account_activation_token.make_token(user=user),
+            "protocol": settings.FRONTEND_PROTOCOL
+        }
+        message = render_to_string(template_name=template, context=context_data)
 
-        print(
-            f"uid: {urlsafe_base64_encode(force_bytes(user.id))}, token: {account_activation_token.make_token(user=user)}")
+        # print(
+        #     f"uid: {urlsafe_base64_encode(force_bytes(user.id))}, token: {account_activation_token.make_token(user=user)}")
         try:
-            # Send Verification Email here
+            
+            send_email.delay(subject=subject, message=message, to_email=user.email)
 
             return Response({
                 "status": "success",
