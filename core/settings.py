@@ -157,6 +157,18 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user':'1000/day',
+        'anon':'100/day',
+        'unrestricted': '1000/day',
+        'restricted': '20/hour',
+        'limited': '5/day'
+    }
 }
 
 

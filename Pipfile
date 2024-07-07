@@ -9,6 +9,7 @@ python-decouple = "*"
 six = "*"
 cryptography = "*"
 drf-yasg = "*"
+ipython = "*"
 
 [dev-packages]
 

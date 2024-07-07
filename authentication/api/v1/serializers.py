@@ -60,6 +60,7 @@ class UserLoginSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "date_joined",
+            "role",
             "is_active",
             "is_superuser"
         )
@@ -68,6 +69,7 @@ class UserLoginSerializer(serializers.ModelSerializer):
             "username",
             "first_name",
             "last_name",
+            "role",
             "date_joined",
             "is_active",
             "is_superuser"
