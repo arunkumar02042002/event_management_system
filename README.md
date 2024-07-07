@@ -99,6 +99,10 @@ Organizers can create events, and all users can participate in events and post f
     ```sh
     python manage.py runserver
     ```
+10. **API Docs**
+    ```sh
+    http://127.0.0.1:8000/swagger
+    ```
 
 ## Usage
 
