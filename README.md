@@ -108,6 +108,15 @@ Organizers can create events, and all users can participate in events and post f
 
 ### API Endpoints
 
+- AUTHENTICATION ENDPOINTS
+
+![AUTHENTICATION ENDPOINTS](readme_images/image.png)
+
+- EVENT ENDPOINTS
+
+![EVENT ENDPOINTS](readme_images/image-1.png)
+
+
 
 - **Registration**
   - `POST authentication/api/v1/register-user/` - Register as a user
