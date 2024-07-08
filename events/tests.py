@@ -493,3 +493,60 @@ class EventFeedbackListCreateViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['status'], 'error')
         self.assertIn('feedback', response.data['payload']['errors'])
+
+
+class OraganizerEventListTests(APITestCase):
+
+    def setUp(self):
+        # Create users
+        self.organizer = User.objects.create_user(username='organizer', password='password123', email="organizer@organizer.organizer", role=UserTypeChoices.ORGANIZER)
+        self.admin = User.objects.create_superuser(username='admin', password='password123', email="admin@admin.admin")
+        self.user = User.objects.create_user(username='user', password='password123', email="user@user.user")
+
+        self.client = APIClient()
+
+        # Create events
+        self.event1 = Event.objects.create(
+            title='Event 1',
+            description='Description for event 1',
+            start_time=timezone.now() + timedelta(days=2),
+            slug='event-1',
+            created_by=self.organizer
+        )
+        self.event2 = Event.objects.create(
+            title='Event 2',
+            description='Description for event 2',
+            start_time=timezone.now() + timedelta(days=2),
+            slug='event-2',
+            created_by=self.organizer
+        )
+        self.event3 = Event.objects.create(
+            title='Event 3',
+            description='Description for event 3',
+            start_time=timezone.now() + timedelta(days=2),
+            slug='event-3',
+            created_by=self.admin
+        )
+
+        self.url = reverse('organizer-events', kwargs={'username': 'organizer'})
+
+    def test_retrieve_organizer_events_success(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['payload']['total_events'], 2)
+        self.assertEqual(len(response.data['payload']['events']), 2)
+
+    def test_organizer_not_found(self):
+        url = reverse('organizer-events', kwargs={'username': 'nonexistent_organizer'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'No organizer with that username found.')
+
+    def test_user_is_not_organizer_or_admin(self):
+        url = reverse('organizer-events', kwargs={'username': 'user'})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'No organizer with that username found.')
