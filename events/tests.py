@@ -75,7 +75,7 @@ class EventsListCreateApiViewTest(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'success')
-        self.assertEqual(len(response.data['payload']), 1)
+        self.assertEqual(len(response.data['payload']['events']), 1)
 
     def test_create_event_authenticated_as_organizer(self):
 
