@@ -8,7 +8,7 @@ from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
 
 
-from .models import Event, Ticket
+from .models import Event, EventFeedback, Ticket
 from authentication.choices import UserTypeChoices
 
 User = get_user_model()
@@ -406,3 +406,90 @@ class MyTicketViewTests(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+
+class EventFeedbackListCreateViewTests(APITestCase):
+
+    def setUp(self):
+        # Create users
+        self.user1 = User.objects.create_user(username='testuser1', password='password123', email="user1@email.com")
+        self.user2 = User.objects.create_user(username='testuser2', password='password123', email="user2@email.com")
+
+        self.client = APIClient()
+        
+        # Create event
+        self.event = Event.objects.create(
+            title='Event 1',
+            description='Description for event 1',
+            start_time=timezone.now() + timedelta(days=2),
+            slug='event-1',
+            created_by=self.user1
+        )
+
+        # Create tickets
+        self.ticket1 = Ticket.objects.create(event=self.event, user=self.user1)
+        self.ticket2 = Ticket.objects.create(event=self.event, user=self.user2)
+
+        # Create feedback
+        self.feedback1 = EventFeedback.objects.create(
+            event=self.event, user=self.user1, feedback="Great event!"
+        )
+
+        self.url = reverse('feedback-list-create', kwargs={'slug': 'event-1'})
+
+    def test_retrieve_feedbacks_success(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(len(response.data['payload']['feedbacks']), 1)
+
+    def test_submit_feedback_success(self):
+        self.client.force_authenticate(user=self.user1)
+        data = {
+            'feedback': 'Amazing event!'
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['payload']['feedback']['feedback'], 'Amazing event!')
+
+    def test_invalid_event_slug(self):
+        invalid_url = reverse('feedback-list-create', kwargs={'slug': 'invalid-slug'})
+        response = self.client.get(invalid_url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Invalid slug field.')
+
+    def test_submit_feedback_not_participant(self):
+        self.client.force_authenticate(user=self.user1)
+        new_event = Event.objects.create(
+            title='Event 2',
+            description='Description for event 2',
+            start_time=timezone.now() + timedelta(days=2),
+            slug='event-2',
+            created_by=self.user2
+        )
+        new_url = reverse('feedback-list-create', kwargs={'slug': 'event-2'})
+        data = {
+            'feedback': 'Good event!'
+        }
+        response = self.client.post(new_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'You are not a participant of that event.')
+
+    def test_submit_feedback_unauthenticated(self):
+        data = {
+            'feedback': 'Nice event!'
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_submit_feedback_invalid_data(self):
+        self.client.force_authenticate(user=self.user1)
+        data = {
+            'feedback': ''  # Invalid feedback (empty)
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertIn('feedback', response.data['payload']['errors'])
