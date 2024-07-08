@@ -150,12 +150,33 @@ Organizers can create events, and all users can participate in events and post f
   - `created_at`: exact, gte, lte
   - `updated_at`: exact, gte, lte
 
-  Example: `/api/events/?start_time__gte=2024-07-01`
+  Example:
+  ```
+  /events/?start_time__lte=2024-07-01
+  /events/?start_time__gte=2024-07-01
+  /events/?start_time__date=2024-07-06
+  ```
 
 - **Ordering**:
   - `created_at`, `updated_at`, `id`, `start_time`
 
-  Example: `/api/events/?ordering=-created_at`
+  Example:
+  ```
+  /events/?ordering=-created_at`
+  /events/?ordering=updated_at`
+  /events/?ordering=id`
+  /events/?ordering=-start_time`
+  ```
+
+  **Searching**:
+  - `tilte`
+
+  Example:
+  ```
+  /events/?search=atlas event`
+  /events/?search=community`
+  /events/?search=event`
+  ```
 
 ## Notifications
 
