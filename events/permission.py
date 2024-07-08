@@ -23,7 +23,7 @@ class IsParticipantorEventOrganizer(BasePermission):
     def has_object_permission(self, request, view, obj):
         result = bool(
             request.method in SAFE_METHODS or
-            request.user and
-            request.user == obj.created_by
+            (request.user and
+            request.user == obj.created_by)
         )
         return result

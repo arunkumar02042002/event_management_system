@@ -85,18 +85,20 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+
         user = request.user
-        ticket = Ticket.objects.filter(user=user, event=instance).first()
-        if ticket:
-            booked = True
-        else:
-            booked = False
+        booked = False
+        if user.is_authenticated:
+            ticket = Ticket.objects.filter(user=user, event=instance).first()
+            if ticket:
+                booked = True
+
         return Response({
             "status":"success",
             "message":"Event Details Retrieved",
             "payload": {
                 "booked":booked,
-                "events":[serializer.data]
+                "event":serializer.data
             }
         })
     
