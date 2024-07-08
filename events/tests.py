@@ -356,3 +356,53 @@ class BuyEventTicketViewTests(APITestCase):
         self.assertEqual(response.data['status'], 'error')
         self.assertEqual(response.data['message'], 'You have already booked your ticket')
         self.assertEqual(Ticket.objects.filter(event=self.event, user=self.user).count(), 1)
+
+
+class MyTicketViewTests(APITestCase):
+
+    def setUp(self):
+        # Create two users
+        self.user1 = User.objects.create_user(username='testuser1', password='password123', email="user1@email.com")
+        self.user2 = User.objects.create_user(username='testuser2', password='password123', email="user2@email.com")
+
+        self.client = APIClient()
+        
+        # Create events
+        self.event1 = Event.objects.create(
+            title='Event 1',
+            description='Description for event 1',
+            start_time=timezone.now() + timedelta(days=2),
+            created_by=self.user1
+        )
+        self.event2 = Event.objects.create(
+            title='Event 2',
+            description='Description for event 2',
+            start_time=timezone.now() + timedelta(days=2),
+            created_by=self.user2
+        )
+
+        # Create tickets
+        self.ticket1 = Ticket.objects.create(event=self.event1, user=self.user1)
+        self.ticket2 = Ticket.objects.create(event=self.event2, user=self.user1)
+        self.ticket3 = Ticket.objects.create(event=self.event1, user=self.user2)
+
+        self.url = reverse('my-tickets')
+
+    def test_retrieve_tickets_success(self):
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(len(response.data['payload']['tickets']), 2)  # User 1 has 2 tickets
+
+    def test_retrieve_tickets_for_user2(self):
+        self.client.force_authenticate(user=self.user2)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(len(response.data['payload']['tickets']), 1)  # User 2 has 1 ticket
+
+    def test_retrieve_tickets_unauthenticated(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+

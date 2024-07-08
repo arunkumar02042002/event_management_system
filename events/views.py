@@ -195,7 +195,9 @@ class MyTicketView(ListAPIView):
         return Response({
             "status":"success",
             "message":"Tickets retrieved successfully!",
-            "payload": serializer.data,
+            "payload": {
+                'tickets':serializer.data
+            },
         }, status=status.HTTP_200_OK)
     
     def get_queryset(self):
