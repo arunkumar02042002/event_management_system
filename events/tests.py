@@ -216,3 +216,83 @@ class EventsListCreateApiViewTest(APITestCase):
         self.assertEqual(len(events), 2)
         self.assertTrue(events[0]['title'] in ['Star Meet', 'Third Event'])
         self.assertTrue(events[1]['title'] in ['Star Meet', 'Third Event'])
+
+
+
+class EventRetrieveUpdateDestroyAPIViewTest(APITestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.organizer = User.objects.create_user(username='organizer', email='organizer@example.com', password='test_password', role=UserTypeChoices.ORGANIZER, is_active=True)
+        self.participant = User.objects.create_user(username='participant', email='participant@example.com', password='test_password', is_active=True)
+        self.other_user = User.objects.create_user(username='otheruser', email='other@example.com', password='other_password', is_active=True)
+        self.event = Event.objects.create(
+            title="Test Event",
+            description="Test Description",
+            location="Test Location",
+            start_time=timezone.now() + timedelta(days=1),
+            created_by=self.organizer
+        )
+
+        self.event_url = reverse('event-retrieve-update-destroy', kwargs={'slug': self.event.slug})
+
+    def test_retrieve_event(self):
+        response = self.client.get(self.event_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = response.data['payload']['event']
+        self.assertEqual(event['title'], self.event.title)
+
+    def test_update_event_as_organizer(self):
+        self.client.force_authenticate(user=self.organizer)
+        data = {
+            'title': 'Updated Event',
+            'description': 'Updated Description',
+            'location': 'Updated Location',
+            'start_time': timezone.now() + timedelta(days=2)
+        }
+        response = self.client.put(self.event_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.title, 'Updated Event')
+
+    def test_update_event_as_participant(self):
+        self.client.force_authenticate(user=self.participant)
+        data = {
+            'title': 'Unauthorized Update',
+            'description': 'Unauthorized Description',
+            'location': 'Unauthorized Location',
+            'start_time': timezone.now() + timedelta(days=2)
+        }
+        response = self.client.put(self.event_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.event.refresh_from_db()
+        self.assertNotEqual(self.event.title, 'Unauthorized Update')
+
+    def test_update_event_as_unauthenticated_user(self):
+        data = {
+            'title': 'Unauthorized Update',
+            'description': 'Unauthorized Description',
+            'location': 'Unauthorized Location',
+            'start_time': timezone.now() + timedelta(days=2)
+        }
+        response = self.client.put(self.event_url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.event.refresh_from_db()
+        self.assertNotEqual(self.event.title, 'Unauthorized Update')
+
+    def test_delete_event_as_organizer(self):
+        self.client.force_authenticate(user=self.organizer)
+        response = self.client.delete(self.event_url)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Event.objects.filter(slug=self.event.slug).exists())
+
+    def test_delete_event_as_participant(self):
+        self.client.force_authenticate(user=self.participant)
+        response = self.client.delete(self.event_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Event.objects.filter(slug=self.event.slug).exists())
+
+    def test_delete_event_as_unauthenticated_user(self):
+        response = self.client.delete(self.event_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Event.objects.filter(slug=self.event.slug).exists())
