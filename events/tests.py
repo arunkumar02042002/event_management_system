@@ -66,7 +66,20 @@ class EventsListCreateApiViewTest(APITestCase):
             description="Test Event Description",
             location="Test Location",
             start_time=timezone.now() + timedelta(days=3),
-            slug="test-event",
+            created_by=self.organizer
+        )
+        self.other_event = Event.objects.create(
+            title="Star Meet",
+            description="An event like never before",
+            location="Delhi",
+            start_time=timezone.now() + timedelta(days=2),
+            created_by=self.organizer
+        )
+        self.third_event = Event.objects.create(
+            title="Third Event",
+            description="An event like never before",
+            location="Ney Yourk",
+            start_time=timezone.now() + timedelta(days=1),
             created_by=self.organizer
         )
         self.url = reverse('event-list-create')
@@ -75,7 +88,7 @@ class EventsListCreateApiViewTest(APITestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'success')
-        self.assertEqual(len(response.data['payload']['events']), 1)
+        self.assertEqual(len(response.data['payload']['events']), 3)
 
     def test_create_event_authenticated_as_organizer(self):
 
@@ -90,7 +103,7 @@ class EventsListCreateApiViewTest(APITestCase):
         response = self.client.post(self.url, data=data, format='json')
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(Event.objects.count(), 2)
+        self.assertEqual(Event.objects.count(), 4)
 
     def test_create_event_authenticated_as_participant(self):
         self.client.force_authenticate(user=self.participant)
@@ -102,7 +115,7 @@ class EventsListCreateApiViewTest(APITestCase):
         }
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(Event.objects.count(), 1)
+        self.assertEqual(Event.objects.count(), 3)
 
     def test_create_event_unauthenticated(self):
         data = {
@@ -113,4 +126,93 @@ class EventsListCreateApiViewTest(APITestCase):
         }
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(Event.objects.count(), 1)
+        self.assertEqual(Event.objects.count(), 3)
+
+    def test_ordering_events_start_time_increasing(self):
+        response = self.client.get(self.url, {'ordering': 'start_time'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['start_time'] < events[1]['start_time'])
+        self.assertTrue(events[1]['start_time'] < events[2]['start_time'])
+
+    def test_ordering_events_start_time_decreasing(self):
+        response = self.client.get(self.url, {'ordering': '-start_time'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['start_time'] > events[1]['start_time'])
+        self.assertTrue(events[1]['start_time'] > events[2]['start_time'])
+
+    def test_ordering_events_created_at_increasing(self):
+        response = self.client.get(self.url, {'ordering': 'created_at'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['created_at'] <= events[1]['created_at'])
+        self.assertTrue(events[1]['created_at'] <= events[2]['created_at'])
+
+    def test_ordering_events_created_at_decreasing(self):
+        response = self.client.get(self.url, {'ordering': '-created_at'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['created_at'] >= events[1]['created_at'])
+        self.assertTrue(events[1]['created_at'] >= events[2]['created_at'])
+
+    def test_ordering_events_updated_at_increasing(self):
+        response = self.client.get(self.url, {'ordering': 'updated_at'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['updated_at'] <= events[1]['updated_at'])
+        self.assertTrue(events[1]['updated_at'] <= events[2]['updated_at'])
+
+    def test_ordering_events_updated_at_decreasing(self):
+        response = self.client.get(self.url, {'ordering': '-updated_at'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['updated_at'] >= events[1]['updated_at'])
+        self.assertTrue(events[1]['updated_at'] >= events[2]['updated_at'])
+
+    def test_ordering_events_id_decreasing(self):
+        response = self.client.get(self.url, {'ordering': 'id'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['id'] < events[1]['id'])
+        self.assertTrue(events[1]['id'] < events[2]['id'])
+
+    def test_ordering_events_id_decreasing(self):
+        response = self.client.get(self.url, {'ordering': '-id'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertTrue(events[0]['id'] > events[1]['id'])
+        self.assertTrue(events[1]['id'] > events[2]['id'])
+
+
+    def test_searching_events(self):
+        response = self.client.get(self.url, {'search': 'meet'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertEqual(len(events), 1)
+        self.assertIn('meet', events[0]['title'].lower())
+
+        response = self.client.get(self.url, {'search': 'event'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+        self.assertEqual(len(events), 2)
+        self.assertIn('event', events[0]['title'].lower())
+        self.assertIn('event', events[1]['title'].lower())
+
+
+    def test_filtering_events(self):
+        response = self.client.get(self.url, {'start_time__gt': timezone.now() + timedelta(days=1)})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+
+        self.assertEqual(len(events), 2)
+        self.assertTrue(events[0]['title'] in ['Star Meet', 'Test Event'])
+        self.assertTrue(events[1]['title'] in ['Star Meet', 'Test Event'])
+
+        response = self.client.get(self.url, {'start_time__lte': timezone.now() + timedelta(days=2)})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = response.data['payload']['events']
+
+        self.assertEqual(len(events), 2)
+        self.assertTrue(events[0]['title'] in ['Star Meet', 'Third Event'])
+        self.assertTrue(events[1]['title'] in ['Star Meet', 'Third Event'])

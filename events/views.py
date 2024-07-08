@@ -56,7 +56,7 @@ class EventsListCreateApiView(ListCreateAPIView):
             "status":"success",
             "message":"Events successfully retrieved.",
             "payload": {
-                'events' : [response.data.pop('results')],
+                'events' : response.data.pop('results'),
                 'pagination':response.data
                 },
         }, status=status.HTTP_200_OK)
@@ -250,7 +250,6 @@ class EventFeedbackListCreateView(GenericAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         requested_data = request.data
-        print(requested_data)
         serializer = self.serializer_class(data=requested_data)
 
         if serializer.is_valid() is False:
