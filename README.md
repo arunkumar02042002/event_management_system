@@ -52,28 +52,28 @@ Organizers can create events, and all users can participate in events and post f
     Create a .env file and set all the variables mentioned in .env-sample
     ```
 
-3. **Install dependencies**
+4. **Install dependencies**
     ```
     pip install -r requirements.txt
     ```
 
-4. **Configure PostgreSQL**
+5. **Configure PostgreSQL**
 
     ```
     Create a PostgreSQL database named 'event_management_db'
     ```
 
-5. **Run migrations**
+6. **Run migrations**
     ```sh
     python manage.py migrate
     ```
 
-6. **Create a superuser**
+7. **Create a superuser**
     ```sh
     python manage.py createsuperuser
     ```
 
-7. **Configure Redis and Celery**
+8. **Configure Redis and Celery**
 
     Run the redis server
     ```
@@ -90,16 +90,22 @@ Organizers can create events, and all users can participate in events and post f
 
     The "PONG" represents success.
 
-8. **Start the Celery worker**
+9. **Start the Celery worker**
     ```sh
     celery -A core worker -l INFO --pool=solo
     ```
 
-9. **Run the development server**
+10. **Run Test**
+    ```
+    python manage.py test
+    ```
+    Check every test pass and look for errors.
+
+11. **Run the development server**
     ```sh
     python manage.py runserver
     ```
-10. **API Docs**
+12. **API Docs**
     ```sh
     http://127.0.0.1:8000/swagger
     ```
