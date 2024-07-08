@@ -89,8 +89,6 @@ class RegisterUserView(GenericAPIView):
         }
         message = render_to_string(template_name=template, context=context_data)
 
-        # print(
-        #     f"uid: {urlsafe_base64_encode(force_bytes(user.id))}, token: {account_activation_token.make_token(user=user)}")
         try:
             send_email.delay(subject=subject, message=message, to_email=user.email)
 
@@ -173,8 +171,6 @@ class RegisterOrganizerView(GenericAPIView):
         }
         message = render_to_string(template_name=template, context=context_data)
 
-        # print(
-        #     f"uid: {urlsafe_base64_encode(force_bytes(user.id))}, token: {account_activation_token.make_token(user=user)}")
         try:
             
             send_email.delay(subject=subject, message=message, to_email=user.email)
@@ -430,7 +426,6 @@ class PasswordResetView(GenericAPIView):
                 "token": default_token_generator.make_token(user=user),
                 "protocol": settings.FRONTEND_PROTOCOL
             }
-            print(context_data)
 
             try:
                 # Send EMail here
