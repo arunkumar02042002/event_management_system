@@ -30,7 +30,7 @@ Organizers can create events, and all users can participate in events and post f
 - Redis
 - Virtualenv (recommended)
 
-# Follow this documentation to install Redis
+### Follow this documentation to install Redis
 <a href="https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-windows/">https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-windows/</a>
 
 ### Setup
@@ -162,10 +162,10 @@ Organizers can create events, and all users can participate in events and post f
 
   Example:
   ```
-  /events/?ordering=-created_at`
-  /events/?ordering=updated_at`
-  /events/?ordering=id`
-  /events/?ordering=-start_time`
+  /events/?ordering=-created_at
+  /events/?ordering=updated_at
+  /events/?ordering=id
+  /events/?ordering=-start_time
   ```
 
   **Searching**:
