@@ -218,7 +218,6 @@ class EventsListCreateApiViewTest(APITestCase):
         self.assertTrue(events[1]['title'] in ['Star Meet', 'Third Event'])
 
 
-
 class EventRetrieveUpdateDestroyAPIViewTest(APITestCase):
 
     def setUp(self):
@@ -296,3 +295,64 @@ class EventRetrieveUpdateDestroyAPIViewTest(APITestCase):
         response = self.client.delete(self.event_url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Event.objects.filter(slug=self.event.slug).exists())
+
+
+class BuyEventTicketViewTests(APITestCase):
+
+    def setUp(self):
+        # Create a user
+        self.user = User.objects.create_user(username='testuser', password='password123', email='user@user.user')
+        self.client = APIClient()
+
+        # Create an event
+        self.event = Event.objects.create(
+            title='Event 1',
+            description='Description for event 1',
+            start_time=timezone.now() + timedelta(days=2),
+            created_by=self.user
+        )
+
+        self.invalid_slug = 'invalid-slug'
+        self.url = reverse('buy-event-ticket', kwargs={'slug': self.event.slug})
+        self.invalid_url = reverse('buy-event-ticket', kwargs={'slug': self.invalid_slug})
+
+    def test_book_ticket_success(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(Ticket.objects.filter(event=self.event, user=self.user).count(), 1)
+        self.assertEqual(Event.objects.get(slug=self.event.slug).no_of_participants, 1)
+
+    def test_book_ticket_as_unauthenticated_user(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Ticket.objects.filter(event=self.event, user=self.user).count(), 0)
+        self.assertEqual(Event.objects.get(slug=self.event.slug).no_of_participants, 0)
+
+    def test_book_ticket_invalid_slug(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(self.invalid_url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Invalid slug field')
+        self.assertEqual(Ticket.objects.filter(event=self.event, user=self.user).count(), 0)
+
+    def test_book_ticket_event_starting_soon(self):
+        self.client.force_authenticate(user=self.user)
+        self.event.start_time = timezone.now() + timedelta(minutes=59)
+        self.event.save()
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'Booking time has been ended for this event.')
+        self.assertEqual(Ticket.objects.filter(event=self.event, user=self.user).count(), 0)
+
+    def test_book_ticket_already_booked(self):
+        self.client.force_authenticate(user=self.user)
+        Ticket.objects.create(event=self.event, user=self.user)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['status'], 'error')
+        self.assertEqual(response.data['message'], 'You have already booked your ticket')
+        self.assertEqual(Ticket.objects.filter(event=self.event, user=self.user).count(), 1)
