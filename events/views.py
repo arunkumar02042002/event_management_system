@@ -37,9 +37,9 @@ class EventsListCreateApiView(ListCreateAPIView):
     pagination_class = PageNumberPagination
 
     filterset_fields = {
-        "start_time": ["gte", "lte", "date"],
-        "created_at": ["gte", "lte", "date"],
-        "updated_at": ["gte", "lte", "date"],
+        "start_time": ["gt", "lt", "gte", "lte", "date"],
+        "created_at": ["gt", "lt", "gte", "lte", "date"],
+        "updated_at": ["gt", "lt", "gte", "lte", "date"],
     }
 
     def get_throttles(self):

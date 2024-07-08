@@ -129,11 +129,11 @@ Organizers can create events, and all users can participate in events and post f
   - `POST authentication/api/v1/register-organizer/` - Register as an organizer
 
 - **Events**
-  - `GET /api/events/` - List all events (with ordering and filtering)
-  - `POST /api/events/` - Create an event (Organizers only)
-  - `GET /api/events/<slug>/` - Retrieve an event
-  - `PUT /api/events/<slug>/` - Update an event (Organizers only)
-  - `DELETE /api/events/<slug>/` - Delete an event (Organizers only)
+  - `GET /events/` - List all events (with ordering and filtering)
+  - `POST /events/` - Create an event (Organizers only)
+  - `GET /events/<slug>/` - Retrieve an event
+  - `PUT /events/<slug>/` - Update an event (Organizers only)
+  - `DELETE /events/<slug>/` - Delete an event (Organizers only)
 
 - **Tickets**
   - `POST /events/<slug>/tickets/` - Buy a ticket for an event
@@ -146,9 +146,9 @@ Organizers can create events, and all users can participate in events and post f
 ## Event Filtering and Ordering
 
 - **Filtering**:
-  - `start_time`: exact, gte (greater than or equal), lte (less than or equal)
-  - `created_at`: exact, gte, lte
-  - `updated_at`: exact, gte, lte
+  - `start_time`: date, gte (greater than or equal), lte (less than or equal), gt, lt
+  - `created_at`: date, gte, lte, gt, lt
+  - `updated_at`: date, gte, lte, gt, lt
 
   Example:
   ```
